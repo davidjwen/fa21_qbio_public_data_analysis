@@ -1,3 +1,7 @@
+# Mac Stuff
+.Icon
+.DS_Store
+
 # History files
 .Rhistory
 .Rapp.history

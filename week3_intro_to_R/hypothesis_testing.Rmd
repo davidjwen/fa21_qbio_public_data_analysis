@@ -10,6 +10,7 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
+library(cowplot)
 ```
 
 ## What is a hypothesis?
@@ -86,6 +87,21 @@ barplot(data, col = ifelse(0:20 >= 16, 'red', 'grey70'), xlab = "number of heads
 
 Since the probability $p = 0.0059 < 0.05$, we can reject the null hypothesis and conclude that the coin is biased. This doesn't mean that the coin **is** biased -- it's just unlikely that it was not. We'll expand on this later when we do differential expression analysis.
 
+## Example 2
+
+Say we have the following data (presented below). How would you tell if the means are (statistically) different?
+
+```{r out.width="80%"}
+set1 = rnorm(100, mean = 6, sd = 2)
+set2 = rnorm(100, mean = 10, sd = 5)
+
+data = data.frame(nums = c(set1, set2), set = c(rep('set1', 100), rep('set2', 100)))
+
+ggplot(data, aes(y = nums, x = set, fill = set)) + 
+  geom_violin(draw_quantiles = 0.5) + 
+  geom_jitter() + 
+  theme_cowplot()
+```
 
 ## Last Remarks
 

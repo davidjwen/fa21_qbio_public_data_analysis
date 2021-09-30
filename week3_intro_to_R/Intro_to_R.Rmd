@@ -84,8 +84,7 @@ As you can see, there's a million ways to name a variable. Don't worry about it 
 
 **Exercise.** In the following code box, create two new variables named `age` and `birthday`, containing your age and your birthday in a `MM/DD/YYYY` format, respectively. What data types are these? When you're done, run the code to make sure you've declared your variables correctly.
 ```{r exercise_variables}
-# code goes here
-# by the way, the '#' means this is a comment, i.e. code that isn't run
+x = 3
 ```
 
 
@@ -115,8 +114,9 @@ z
 **Exercise.** Use the `max` and `min` functions to find the largest value of `rand_nums`, which is a secret list of 10 numbers, then store those two values in two different variable. Then find the product of the max and min, save it to another variable, and print it using the `print` function (note that both `max`, `min`, and `print` can all take in one parameter). You should see `19.05239`.
 
 ```{r exercise_more_functions}
-# code goes here
-# work on the wording a bit better
+list_of_numbers = c(1, 3, 4, 8, 1, 44, -3)
+min()
+max()
 ```
 
 ### Writing Functions
@@ -144,7 +144,9 @@ graph_parabola(1, 4, 3) # much easier than typing the above code!
 **Exercise.** Write a function called `quad_form` that accepts three paramters (`a, b, c`) and returns one solution of the quadratic formula (remember: $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$).
 
 ```{r exercise_write_func}
-# code goes here
+quad_form = function(a, b, c){
+  sqrt()
+}
 
 ```
 

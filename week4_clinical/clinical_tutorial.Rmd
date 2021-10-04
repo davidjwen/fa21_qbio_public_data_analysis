@@ -11,6 +11,10 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+install.packages("BiocManager")
+library(BiocManager)
+BiocManager::install("TCGAbiolinks")
+
 library(TCGAbiolinks)
 ```
 

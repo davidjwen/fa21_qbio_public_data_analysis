@@ -39,7 +39,6 @@ head( "fill in here" )
 
 Check for understanding: What is the difference between str() and head()?
 
-
 Use the function `colnames()` to look at the column available in the clinic dataframe. Each of the column names here was also listed with a `$` when the str() function was used. Access a specific column via the `$`.
 ```{r}
 colnames(clinic)

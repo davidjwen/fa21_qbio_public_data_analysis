@@ -1,0 +1,203 @@
+---
+title: "RNAseq tutorial"
+author: "David Wen"
+date: "10/19/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## RNA-Seq Tutorial 
+**As a warning, I wouldn't run any of the code in the .rmd file**. Things will get **very** ugly. I would suggest opening a separate R notebook and copying code/writing in there.
+
+First steps, as usual: let's download the packages we need!
+```{r, eval=F}
+BiocManager::install("SummarizedExperiment")
+```
+
+Load appropriate libraries. We will use `TCGAbiolinks` and `SummarizedExperiment`.
+```{r}
+# LOAD YOUR PACKAGES HERE
+```
+
+Let's look get our RNA-seq data now. (Downloading and preparing might take a while...)
+```{r, eval=F}
+query <- GDCquery(project = "TCGA-STAD", 
+                  data.category = "Transcriptome Profiling", # get the RNA-seq transcriptome
+                  data.type = "Gene Expression Quantification", # gets the counts
+                  workflow.type = "HTSeq - Counts") # gets the raw counts processed by this method
+GDCdownload(query) # only need to download the data once!
+sum_exp <- GDCprepare(query)
+```
+
+Unfortunately, if you look at the RNA-seq object (`SummarizedExperiment`), it's not very pretty...
+```{r, eval = F}
+str(sum_exp)
+```
+
+
+Let's look at each of the different sections of the `SummarizedExperiment.` This can still be somewhat overwhelming, however.
+
+By the way, if you're confused by the `@` signs that are popping up when you use `str()`, you can find out what kind of object everything is with the `class()` function. They'll all include `S4Vectors`, which is an object in R. You might have noticed that `maf` objects also used this `@` syntax -- it turns out they're both `S4Vectors`! (Unfortunately, I don't understand `S4Vectors` beyond that. R is confusing.)
+```{r, eval = F}
+str(rowData(sum_exp))
+# Repeat with colData
+# Repeat with assays
+```
+
+Look more at the `rowData.` Use `head()` to look at the first few entries. Use `dim()` to determine how many genes have information.
+```{r, eval=F}
+head(rowData(sum_exp))
+dim(rowData(sum_exp))
+```
+
+Check for understanding: What does each column in `rowData()` represent? What does each row contain?
+
+Next, we will look at `colData()`. Based on your understanding of the `colData()` component, what should it contain?
+Note: 1:10 creates a list from 1 to 10 (1,2,3,4...). We can use it to index the first 10 column and row names. If this is confusing, remove the [1:10] and run the `colnames()` function. Then print 1:10 in your R console. Finally replace the [1:10].
+```{r, eval=F}
+colnames(colData(sum_exp))[1:10] 
+rownames(colData(sum_exp))[1:10]
+```
+
+*A Review on Boolean Indexing; skip it if you don't need it!*
+Boolean Indexing is a unique way to index into a `dataframe` utilizing a "boolean mask". As review, a boolean is a `TRUE` or `FALSE` element, and a boolean mask is a list of TRUE's and FALSE's. Also, in `R`, you can subset rows/columns from a dataframe using a boolean mask. For our example, our goal is to get the gene expression of "Young" patients.
+
+### Assigning Clinical Information
+
+As a forewarning, we need to deal with `NA` data. In general, it's best practice to drop them completely, but for now let's just assign them to the "mid" group. If you code your `ifelse` condition cleverly, this will happen automatically without explicitly calling `is.na()` (although it's very good practice to include that check, especially in other languages). Try to figure it out!
+
+First, determine which patients are "Young" and which patients are "Old" and which patients are of "Mid" age. 
+
+We can do this in multiple ways. The first is using a for loop and if/else if statements (fill in the blanks).
+```{r, eval = F}
+# Use colnames() to find the name of the column that has the age data.
+# If you have tidyverse loaded, glimpse() is a nice function to look at the rows and its contents simultaneously
+
+# Note that for age, it is sometimes reported in days rather than in years. To switch to years, what should you do?
+# Also, remember that R does floating point division (i.e. "normal" division), but you're probably going to want to round to an integer. If you're not sure what function does that, check Google! (this might sound stupid, but it's good to get in the habit of Googling)
+
+colData(sum_exp)$age_at_diagnosis <- colData(sum_exp)$age_at_diagnosis / "fill here"
+
+age_category_column <- NULL # initialize variable to NULL so you can fill it in with the loop
+# NULL is basically just an "empty" value
+
+for(age in colData(sum_exp)$age_at_diagnosis) # Make sure you know what this line is doing!
+{
+  # fill in here!
+  # for our purposes, let's call our age cutoff for "young" to be < 50, and "old" to be >= 60
+  # and "mid" for everyone else
+  
+  # hint: you can append something to a vector by writing c(age_category_column, NEW THING)
+  # and yes, age_category_column is a vector even when it's NULL. Everything in R is a vector!
+  # NULL will "go away" once you add things to it.
+}
+```
+
+
+Alternatively, we could use the `ifelse()` structure. 
+```{r, eval = F}
+age_category_column_2 = ifelse() # fill out here!
+```
+
+As a sanity check, make sure `age_category_column` and `age_category_column` are the same:
+```{r, eval = F}
+all(age_category_column == age_category_column_2)
+# this code just checks element-by-element to make sure everything is the same
+# otherwise you have to scroll through everything and make sure they all read true
+```
+
+Finally, just replace `NA` values with "mid" (depending on what you did, this might not be necessary).
+```{r}
+# use boolean indexing!
+```
+
+We will return to the `age_category_column` in a moment.
+
+### Assays
+
+Now we will look more at assays. Based on your understanding of `assays()`, what should it contain?
+
+Notice that when you run `assays(sum_exp)`, there is an "HTSeq - Counts" section of the dataframe. This can be accessed using the `$` and "HTSeq - Counts". Also notice that because there are spaces in the name, the quotation marks are needed! (You can use the ` character instead of the quotes by the way, which is the same key as the tilde. It's technically more correct in R, though it doesn't matter in case).
+```{r, eval=F}
+assays(sum_exp)
+str(assays(sum_exp)$"HTSeq - Counts")
+head(assays(sum_exp)$"HTSeq - Counts")
+
+# these are equivalent to the above
+# str(assays(sum_exp)$`HTSeq - Counts`)
+# head(assays(sum_exp)$`HTSeq - Counts`)
+```
+
+For greater ease, we will assign "HTSeq - Counts" to its own variable.
+```{r, eval = F}
+counts <- assays(sum_exp)$"HTSeq - Counts"
+```
+
+What are the rows and columns of counts? Use `colnames()` and `rownames()` if you are unsure.
+
+Relate this back `colData(sum_exp)`. Which dimension (rows or columns) from `colData(sum_exp)` is equal to which dimension (rows or columns) of counts?
+```{r, eval = F}
+# look back at the dimensions if you need to!
+dim(colData(sum_exp))["fill here"] == dim(counts)["fill here"]
+```
+
+Because the dimensions are the same, we can use our boolean indexing! First we will find the young patients and create a boolean mask. Then we will use that mask to index into counts.
+```{r, eval = F}
+bool_young_mask <- age_category_column == "Young"
+```
+
+Note: in most languages, computers actually store TRUE as 1 and FALSE as 0. You can actually sum a boolean mask to determine how many TRUE's it contains. 
+How many young patients are there?
+```{r, eval = F}
+sum(bool_young_mask)
+```
+
+Your boolean mask is the same length as which dimension of counts? Knowing this, fill in `bool_young_mask` before or after the comma.
+```{r, eval = F}
+young_counts <- counts[ , ]
+```
+
+Repeat with old patients!
+```{r}
+
+```
+
+
+**As an exercise**, plot the number of young and old patients. What plot would be appropriate? Make sure it's labeled well!
+
+**Additionally**, plot the expression of the genes *GAPDH* vs. *PKM2*, then color the points by the ages. What do you notice? Also, look up the genes. What are they? If you've taken AP bio or BISC 220, they names might be familiar. As another fun exercise, find the correlation between the two genes.
+
+```{r}
+# a code block to remind you that there's work to be done here
+```
+
+A few words of warning:
+
+1. Unfortunately, the gene names are Ensembl names (i.e. "ENSG0000..."). You can figure out how to programmatically convert all of the gene names to a human-readable format (the packages `biomaRt` and `org.Hs.eg.db` are two ways to do it), but the faster way is to just look up those two genes' Ensembl names and plot the columns calling their Ensembl names (i.e. ENSG....).
+2. the `counts` table is "sideways." For plotting purposes, you generally want the genes to represent the columns. Use the `t()` function to "fix" this (but DON'T modify the `counts` object; make a new one).
+
+### Save as a `hdf5` summary
+A `SummarizedExperiment` can be saved as an `HDF5Array` (the details aren't too important -- although as an exercise, what R command would you run to get more info about it?).
+```{r, eval = F}
+# you'll probably need to install this package
+if(!requireNamespace("HDF5Array")) BiocManager::install("HDF5Array")
+library(HDF5Array)
+
+saveHDF5SummarizedExperiment(sum_exp, 
+                             dir="htseq_h5_sumexp", 
+                             prefix = "", 
+                             replace = FALSE, 
+                             chunkdim = NULL, 
+                             level = NULL, 
+                             as.sparse = NA, 
+                             verbose = NA)
+```
+
+Once it is saved, you can read it in without having to query the data again.
+```{r, eval = F}
+sum_exp <- loadHDF5SummarizedExperiment(dir = "htseq_h5_sumexp", prefix = "")
+```
+

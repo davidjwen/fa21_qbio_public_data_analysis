@@ -192,19 +192,31 @@ library(tidyverse)  # for plotting/other functions you might want to use</code><
 <p>First, we need to load in our data. There’s two main ways to do it:</p>
 <ul>
 <li>Use <code>GDCquery()</code>.</li>
-<li>Load the HDF5Array file from the RNA-seq tutorial using the <code>HDF5Array::loadHDF5SummarizedExperiment()</code>. This saves querying time!</li>
+<li>Load the HDF5Array file from the RNA-seq tutorial using the <code>HDF5Array</code> function <code>loadHDF5SummarizedExperiment()</code>. This saves querying time!</li>
 </ul>
 <p>Let’s use the second option (<code>HDF5Array</code>), since we’ve already done some work on the <code>SummarizedExperiment.</code> If you’re unsure how to use the function, look up how to use them using the <code>?</code> and <code>args()</code> functions! (Or just look at last week’s tutorial).</p>
 <pre class="r"><code>sum_exp = # load it in!</code></pre>
 <p>Now that we have the data, we need to split the patients into groups, so as before let’s do it by age. As a reminder, we need to handle <code>NA</code> values, and we’ll consider patients that are under 50 years old to be <code>young</code>, people 60 or older to be <code>old</code>, and everyone in the middle to be <code>mid</code>. Since we didn’t remove <code>NA</code> values last time, we’re going to have to do that. In more detail, what you should do:</p>
 <ol style="list-style-type: decimal">
 <li>Identify the patients that do not have an age listed (i.e. if it is <code>NA</code>). In which part of the <code>SummarizedExperiment</code> can you find this info?</li>
+</ol>
+<pre class="r"><code># Part 1</code></pre>
+<ol start="2" style="list-style-type: decimal">
 <li>Make a copy of the clinical and counts data from the <code>sum_exp</code>, calling them <code>patient_data</code> and <code>counts</code>, respectively.</li>
+</ol>
+<pre class="r"><code># Part 2</code></pre>
+<ol start="3" style="list-style-type: decimal">
 <li>Remove the patients with <code>NA</code> age from <code>patient_data</code> and <code>counts</code>. (It’s possible to do this in the same step as 2).</li>
+</ol>
+<pre class="r"><code># Part 3</code></pre>
+<ol start="4" style="list-style-type: decimal">
 <li>Create a column in <code>patient_data</code> called <code>age_category</code>, which contains the three age levels (<code>young</code>, <code>mid</code>, and <code>old</code>).</li>
+</ol>
+<pre class="r"><code># Part 4</code></pre>
+<ol start="5" style="list-style-type: decimal">
 <li>Finally, you need to convert this <code>age_category</code> column into a <code>factor</code> (basically telling <code>R</code> that these aren’t strings, but are levels of data). This is a bit more involved: you need to write <code>patient_data$age_category = factor(patient_data$age_category, levels = c(&quot;young&quot;, &quot;mid&quot;, &quot;old&quot;))</code>. The levels need to be specified so that the <code>young</code> group gets compared to <code>mid</code> and <code>old</code> when you go into the <code>DESeq2</code> pathway (it will compare the first to the others).</li>
 </ol>
-<pre class="r"><code># Do the above!</code></pre>
+<pre class="r"><code># Part 5</code></pre>
 <p>Next, it’s common to clean up our <code>counts</code> data a bit. The first thing we want to do is the make the gene names readable. Run the following lines of code to remap the gene names:</p>
 <pre class="r"><code># make sure that your Ensembl row names match perfectly to the data in rowRanges before replacing
 if (all(rownames(counts) == names(rowRanges(sum_exp)))){
@@ -212,7 +224,7 @@ if (all(rownames(counts) == names(rowRanges(sum_exp)))){
 }</code></pre>
 <p>Let’s look at genes that are very lowly expressed. Use the <code>rowMeans()</code> function to sum across the rows (i.e. genes) in the <code>counts</code> data, and see how many genes have, on average, 10 or fewer counts.</p>
 <pre class="r"><code># Find how many are lowly expressed!</code></pre>
-<p>You should see that over half of the genes are very lowly expressed. Let’s prune these rows from <code>counts</code>, since they’re just going to make our analysis slower without really adding much information.</p>
+<p>You should see that over half of the genes are very lowly expressed. Let’s prune these rows (with mean expression ten or less) from <code>counts</code>, since they’re just going to make our analysis slower without really adding much information.</p>
 <pre class="r"><code># Get rid of those rows from counts!</code></pre>
 <p>Now, we’re ready to do analysis!</p>
 </div>
@@ -227,7 +239,7 @@ dds_obj = DESeq(dds)
 resultsNames(dds_obj)  # see what comparisons got run; make sure both have young
 
 # get the young vs. old comparison
-results = DESeq2::results(dds_obj, format = &quot;DataFrame&quot;, contrast = c(&quot;age_category&quot;, &quot;young&quot;, &quot;old&quot;))</code></pre>
+results = results(dds_obj, format = &quot;DataFrame&quot;, contrast = c(&quot;age_category&quot;, &quot;young&quot;, &quot;old&quot;))</code></pre>
 <p>What basically, what happens in the first function is that you make a <code>DESeqDataSet</code> object, which processes your transcript count data, the phenotypic data (<code>colData</code>), and the categories you want to compare on (<code>design</code>). What the <code>~</code> means is the variable name you want to “split” the data on; in this case, it will do pairwise comparisons on the <code>age_category</code> levels from young vs. the others (young vs. mid, young vs. old). The <code>DESeq()</code> function does the comparisons and stats, and <code>results</code> will make those comparisons readable. The <code>contrasts</code> argument calculates the fold change in young vs. old, with old being the baseline. A more mathematical definition is below (in the second line, I just took <span class="math inline">\(\log_2\)</span> of both sides for later, as you will soon see. You should get comfortable with the properties of logarithms for your CS courses!):</p>
 <p><span class="math display">\[\begin{align}
 \text{fold change}_{x} &amp;= \frac{\mathrm{counts}_\text{gene $x$, young}}{\mathrm{counts}_\text{gene $x$, old}} \\
@@ -243,7 +255,12 @@ head(results)</code></pre>
 <p>It’s probably more interesting to look at the genes with the lowest adjusted p-values:</p>
 <pre class="r"><code>head(results[order(results$padj, decreasing = F), ], 10)  # be sure to understand what this is doing!</code></pre>
 <p>Note that a positive <code>log2FoldChange</code> means the gene is more highly expressed in young patients, and a negative <code>log2FoldChange</code> indicates the opposite (see the <span class="math inline">\(\log_2\)</span> line of the equation to convince yourself).</p>
-<p>The most common way to visualize results is to plot each gene as a <em>volcano plot</em>. A volcano plot shows the expression of each gene, with the negative log10 (adjusted) p-value on the vertical axis and the log2FoldChange on the x-axis. Here’s how to make one using <code>ggplot</code> (this might be hard to understand at first glance):</p>
+<p>The most common way to visualize results is to plot each gene as a <em>volcano plot</em>. A volcano plot shows the expression of each gene, with the negative log10 (adjusted) p-value on the vertical axis and the log2FoldChange on the x-axis. Here’s how to make one using base R plotting functions:</p>
+<pre class="r"><code>plot(x= results$log2FoldChange, y= -log10(results$padj))
+#abline() plots straight lines on an R plot.
+#v argument is for a vertical line, h argument is for a horizontal line, col argument is color
+abline(v=c(log2FC_threshold, -log2FC_threshold), h= c(-log10(padj_threshold)), col=&quot;green&quot;)</code></pre>
+<p>And here is a way to do it in <code>ggplot</code>:</p>
 <pre class="r"><code>fc_threshold = 1  # set a threshold of at least a 2 fold increase (double)
 p_threshold = 0.05  # set a threshold of adjusted p-value being &lt;= 0.05
 
@@ -255,7 +272,7 @@ volcano_plot = ggplot(data = data.frame(results), aes(x = log2FoldChange, y = -l
   geom_hline(yintercept=-log10(p_threshold), color=&quot;red&quot;)
 
 volcano_plot</code></pre>
-<p>You can play around with <code>ggplot</code> and the <code>results</code> objects to get more informative plots, but this should be good enough to get started. (Feel free to ask if you want to get fancier plots).</p>
+<p>You can play around with <code>ggplot</code> and the <code>results</code> objects to get more informative plots (there’s great tutorials online), but this should be good enough to get started. (Feel free to ask if you want to get fancier plots!)</p>
 <p>Likewise, you can look at the genes that pass your thresholds. You can do this through the classic boolean masking techniques! (Look at a subset of your table based on the <code>fc_threshold</code> and <code>p_threshold</code>).</p>
 <pre class="r"><code># look at the genes that pass your thresholds</code></pre>
 <p>There’s a lot more comparisons you can make by performing differential expression, but the process will look very similar to this. There’s also a lot more downstream analysis you can do with the fold change data (such as gene ontology, pathway enrichment, etc), but we’re not going to discuss that as a group.</p>

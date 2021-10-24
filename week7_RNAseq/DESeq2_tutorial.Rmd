@@ -31,7 +31,7 @@ library(tidyverse)  # for plotting/other functions you might want to use
 First, we need to load in our data. There's two main ways to do it:
 
 * Use `GDCquery()`.
-* Load the HDF5Array file from the RNA-seq tutorial using the `HDF5Array::loadHDF5SummarizedExperiment()`. This saves querying time!
+* Load the HDF5Array file from the RNA-seq tutorial using the `HDF5Array` function `loadHDF5SummarizedExperiment()`. This saves querying time!
 
 Let's use the second option (`HDF5Array`), since we've already done some work on the `SummarizedExperiment.` If you're unsure how to use the function, look up how to use them using the `?` and `args()` functions! (Or just look at last week's tutorial).
 
@@ -42,13 +42,33 @@ sum_exp = # load it in!
 Now that we have the data, we need to split the patients into groups, so as before let's do it by age. As a reminder, we need to handle `NA` values, and we'll consider patients that are under 50 years old to be `young`, people 60 or older to be `old`, and everyone in the middle to be `mid`. Since we didn't remove `NA` values last time, we're going to have to do that. In more detail, what you should do:
 
 1. Identify the patients that do not have an age listed (i.e. if it is `NA`). In which part of the `SummarizedExperiment` can you find this info?
+
+```{r, eval=F}
+# Part 1
+```
+
 2. Make a copy of the clinical and counts data from the `sum_exp`, calling them `patient_data` and `counts`, respectively.
+
+```{r, eval=F}
+# Part 2
+```
+
 3. Remove the patients with `NA` age from `patient_data` and `counts`. (It's possible to do this in the same step as 2).
+
+```{r, eval=F}
+# Part 3
+```
+
 4. Create a column in `patient_data` called `age_category`, which contains the three age levels (`young`, `mid`, and `old`).
+
+```{r, eval=F}
+# Part 4
+```
+
 5. Finally, you need to convert this `age_category` column into a `factor` (basically telling `R` that these aren't strings, but are levels of data). This is a bit more involved: you need to write `patient_data$age_category = factor(patient_data$age_category, levels = c("young", "mid", "old"))`. The levels need to be specified so that the `young` group gets compared to `mid` and `old` when you go into the `DESeq2` pathway (it will compare the first to the others).
 
 ```{r, eval=F}
-# Do the above!
+# Part 5
 ```
 
 Next, it's common to clean up our `counts` data a bit. The first thing we want to do is the make the gene names readable. Run the following lines of code to remap the gene names:
@@ -65,7 +85,7 @@ Let's look at genes that are very lowly expressed. Use the `rowMeans()` function
 # Find how many are lowly expressed!
 ```
 
-You should see that over half of the genes are very lowly expressed. Let's prune these rows from `counts`, since they're just going to make our analysis slower without really adding much information.
+You should see that over half of the genes are very lowly expressed. Let's prune these rows (with mean expression ten or less) from `counts`, since they're just going to make our analysis slower without really adding much information.
 
 ```{r, eval=F}
 # Get rid of those rows from counts!
@@ -85,7 +105,7 @@ dds_obj = DESeq(dds)
 resultsNames(dds_obj)  # see what comparisons got run; make sure both have young
 
 # get the young vs. old comparison
-results = DESeq2::results(dds_obj, format = "DataFrame", contrast = c("age_category", "young", "old"))
+results = results(dds_obj, format = "DataFrame", contrast = c("age_category", "young", "old"))
 ```
 
 What basically, what happens in the first function is that you make a `DESeqDataSet` object, which processes your transcript count data, the phenotypic data (`colData`), and the categories you want to compare on (`design`). What the `~` means is the variable name you want to "split" the data on; in this case, it will do pairwise comparisons on the `age_category` levels from young vs. the others (young vs. mid, young vs. old). The `DESeq()` function does the comparisons and stats, and `results` will make those comparisons readable. The `contrasts` argument calculates the fold change in young vs. old, with old being the baseline. A more mathematical definition is below (in the second line, I just took $\log_2$ of both sides for later, as you will soon see. You should get comfortable with the properties of logarithms for your CS courses!):
@@ -110,8 +130,16 @@ head(results[order(results$padj, decreasing = F), ], 10)  # be sure to understan
 
 Note that a positive `log2FoldChange` means the gene is more highly expressed in young patients, and a negative `log2FoldChange` indicates the opposite (see the $\log_2$ line of the equation to convince yourself).
 
-The most common way to visualize results is to plot each gene as a *volcano plot*. A volcano plot shows the expression of each gene, with the negative log10 (adjusted) p-value on the vertical axis and the log2FoldChange on the x-axis. Here's how to make one using `ggplot` (this might be hard to understand at first glance):
+The most common way to visualize results is to plot each gene as a *volcano plot*. A volcano plot shows the expression of each gene, with the negative log10 (adjusted) p-value on the vertical axis and the log2FoldChange on the x-axis. Here's how to make one using base R plotting functions:
 
+```{r, eval=F}
+plot(x= results$log2FoldChange, y= -log10(results$padj))
+#abline() plots straight lines on an R plot.
+#v argument is for a vertical line, h argument is for a horizontal line, col argument is color
+abline(v=c(log2FC_threshold, -log2FC_threshold), h= c(-log10(padj_threshold)), col="green")
+```
+
+And here is a way to do it in `ggplot`:
 ```{r, eval=F}
 fc_threshold = 1  # set a threshold of at least a 2 fold increase (double)
 p_threshold = 0.05  # set a threshold of adjusted p-value being <= 0.05
@@ -126,7 +154,7 @@ volcano_plot = ggplot(data = data.frame(results), aes(x = log2FoldChange, y = -l
 volcano_plot
 ```
 
-You can play around with `ggplot` and the `results` objects to get more informative plots, but this should be good enough to get started. (Feel free to ask if you want to get fancier plots).
+You can play around with `ggplot` and the `results` objects to get more informative plots (there's great tutorials online), but this should be good enough to get started. (Feel free to ask if you want to get fancier plots!)
 
 Likewise, you can look at the genes that pass your thresholds. You can do this through the classic boolean masking techniques! (Look at a subset of your table based on the `fc_threshold` and `p_threshold`).
 ```{r}

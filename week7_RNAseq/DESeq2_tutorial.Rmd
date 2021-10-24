@@ -1,0 +1,142 @@
+---
+title: "DESeq2 tutorial"
+author: "David Wen"
+date: "10/23/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+We will be using the package `DESeq2` to perform differential expression analysis. There are a couple other R packages that can do differential expression in RNA-seq data, such as `edgeR` and `limma`, but we've decided to use `DESeq2` since it seems to be used more in publications (though `edgeR` is also fairly popular; 30k vs. 22k citations, respectively). `limma` is more specialized for microarray data, but it's also been used for RNA-seq. Feel free to explore these!
+
+As with last time, I would encourage you to copy and paste and write your code in a separate Rscript file (new file >> Rscript in the very top left corner), since this tends to be better practice, and again things might be a bit ugly in the markdown file.
+
+As a final note, since this is the last thing we're doing in R, the training wheels are coming off with this tutorial -- we're providing the minimum needed. However, all the R in this tutorial should have been covered previously, so refer to those if you get stuck!
+
+## Loading Packages: the Usual
+
+As always, we need to download and load in our packages.
+```{r, eval=F}
+if (!require(DESeq2)) BiocManager::install("DESeq2")
+library(TCGAbiolinks)
+library(SummarizedExperiment)
+library(DESeq2)
+library(tidyverse)  # for plotting/other functions you might want to use
+```
+
+## Preprocessing Our Data
+First, we need to load in our data. There's two main ways to do it:
+
+* Use `GDCquery()`.
+* Load the HDF5Array file from the RNA-seq tutorial using the `HDF5Array::loadHDF5SummarizedExperiment()`. This saves querying time!
+
+Let's use the second option (`HDF5Array`), since we've already done some work on the `SummarizedExperiment.` If you're unsure how to use the function, look up how to use them using the `?` and `args()` functions! (Or just look at last week's tutorial).
+
+```{r, eval=F}
+sum_exp = # load it in!
+```
+
+Now that we have the data, we need to split the patients into groups, so as before let's do it by age. As a reminder, we need to handle `NA` values, and we'll consider patients that are under 50 years old to be `young`, people 60 or older to be `old`, and everyone in the middle to be `mid`. Since we didn't remove `NA` values last time, we're going to have to do that. In more detail, what you should do:
+
+1. Identify the patients that do not have an age listed (i.e. if it is `NA`). In which part of the `SummarizedExperiment` can you find this info?
+2. Make a copy of the clinical and counts data from the `sum_exp`, calling them `patient_data` and `counts`, respectively.
+3. Remove the patients with `NA` age from `patient_data` and `counts`. (It's possible to do this in the same step as 2).
+4. Create a column in `patient_data` called `age_category`, which contains the three age levels (`young`, `mid`, and `old`).
+5. Finally, you need to convert this `age_category` column into a `factor` (basically telling `R` that these aren't strings, but are levels of data). This is a bit more involved: you need to write `patient_data$age_category = factor(patient_data$age_category, levels = c("young", "mid", "old"))`. The levels need to be specified so that the `young` group gets compared to `mid` and `old` when you go into the `DESeq2` pathway (it will compare the first to the others).
+
+```{r, eval=F}
+# Do the above!
+```
+
+Next, it's common to clean up our `counts` data a bit. The first thing we want to do is the make the gene names readable. Run the following lines of code to remap the gene names:
+
+```{r, eval=F}
+# make sure that your Ensembl row names match perfectly to the data in rowRanges before replacing
+if (all(rownames(counts) == names(rowRanges(sum_exp)))){
+  rownames(counts) = rowRanges(sum_exp)$external_gene_name
+}
+```
+
+Let's look at genes that are very lowly expressed. Use the `rowMeans()` function to sum across the rows (i.e. genes) in the `counts` data, and see how many genes have, on average, 10 or fewer counts.
+```{r, eval=F}
+# Find how many are lowly expressed!
+```
+
+You should see that over half of the genes are very lowly expressed. Let's prune these rows from `counts`, since they're just going to make our analysis slower without really adding much information.
+
+```{r, eval=F}
+# Get rid of those rows from counts!
+```
+
+Now, we're ready to do analysis!
+
+## DEseq Pipeline
+
+This part is very straightforward. There's a way to make it even more straightforward using the fact that your information is packaged nicely in a `SummarizedExperiment` object, but this might be more informative if the data isn't put together nicely for you. This code might take a while to run.
+```{r, eval=F}
+dds = DESeqDataSetFromMatrix(countData = counts,
+                             colData = patient_data,
+                             design = ~age_category)
+
+dds_obj = DESeq(dds)
+resultsNames(dds_obj)  # see what comparisons got run; make sure both have young
+
+# get the young vs. old comparison
+results = DESeq2::results(dds_obj, format = "DataFrame", contrast = c("age_category", "young", "old"))
+```
+
+What basically, what happens in the first function is that you make a `DESeqDataSet` object, which processes your transcript count data, the phenotypic data (`colData`), and the categories you want to compare on (`design`). What the `~` means is the variable name you want to "split" the data on; in this case, it will do pairwise comparisons on the `age_category` levels from young vs. the others (young vs. mid, young vs. old). The `DESeq()` function does the comparisons and stats, and `results` will make those comparisons readable. The `contrasts` argument calculates the fold change in young vs. old, with old being the baseline. A more mathematical definition is below (in the second line, I just took $\log_2$ of both sides for later, as you will soon see. You should get comfortable with the properties of logarithms for your CS courses!):
+
+\begin{align}
+\text{fold change}_{x} &= \frac{\mathrm{counts}_\text{gene $x$, young}}{\mathrm{counts}_\text{gene $x$, old}} \\
+\log_2 \text{fold change}_{x} &= \log_2 \mathrm{counts}_\text{gene $x$, young} - \log_2 \mathrm{counts}_\text{gene $x$, old}
+\label{eq:log2fc}
+\end{align}
+
+## Analysis
+Finally, we have our data! Now, we can proceed to analyze it. First, take a look at our results (for the most part, you can just treat it as a dataframe).
+```{r, eval=F}
+str(results)
+head(results)
+```
+
+It's probably more interesting to look at the genes with the lowest adjusted p-values:
+```{r, eval=F}
+head(results[order(results$padj, decreasing = F), ], 10)  # be sure to understand what this is doing!
+```
+
+Note that a positive `log2FoldChange` means the gene is more highly expressed in young patients, and a negative `log2FoldChange` indicates the opposite (see the $\log_2$ line of the equation to convince yourself).
+
+The most common way to visualize results is to plot each gene as a *volcano plot*. A volcano plot shows the expression of each gene, with the negative log10 (adjusted) p-value on the vertical axis and the log2FoldChange on the x-axis. Here's how to make one using `ggplot` (this might be hard to understand at first glance):
+
+```{r, eval=F}
+fc_threshold = 1  # set a threshold of at least a 2 fold increase (double)
+p_threshold = 0.05  # set a threshold of adjusted p-value being <= 0.05
+
+volcano_plot = ggplot(data = data.frame(results), aes(x = log2FoldChange, y = -log10(padj))) + 
+  geom_point() + 
+  theme_minimal() + # make things pretty
+  # next 2 lines draw lines at the thresholds
+  geom_vline(xintercept=c(-fc_threshold, fc_threshold), color="red") + 
+  geom_hline(yintercept=-log10(p_threshold), color="red")
+
+volcano_plot
+```
+
+You can play around with `ggplot` and the `results` objects to get more informative plots, but this should be good enough to get started. (Feel free to ask if you want to get fancier plots).
+
+Likewise, you can look at the genes that pass your thresholds. You can do this through the classic boolean masking techniques! (Look at a subset of your table based on the `fc_threshold` and `p_threshold`).
+```{r}
+# look at the genes that pass your thresholds
+```
+
+There's a lot more comparisons you can make by performing differential expression, but the process will look very similar to this. There's also a lot more downstream analysis you can do with the fold change data (such as gene ontology, pathway enrichment, etc), but we're not going to discuss that as a group. 
+
+To finish off the tutorial, let's save the `results` data using `write_csv()`!
+
+```{r}
+# write CSV 
+```

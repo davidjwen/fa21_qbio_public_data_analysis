@@ -45,3 +45,4 @@ vignettes/*.pdf
 
 GDCdata
 MANIFEST*
+htseq_h5*

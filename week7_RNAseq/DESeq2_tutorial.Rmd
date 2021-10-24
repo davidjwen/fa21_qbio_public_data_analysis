@@ -130,26 +130,29 @@ head(results[order(results$padj, decreasing = F), ], 10)  # be sure to understan
 
 Note that a positive `log2FoldChange` means the gene is more highly expressed in young patients, and a negative `log2FoldChange` indicates the opposite (see the $\log_2$ line of the equation to convince yourself).
 
-The most common way to visualize results is to plot each gene as a *volcano plot*. A volcano plot shows the expression of each gene, with the negative log10 (adjusted) p-value on the vertical axis and the log2FoldChange on the x-axis. Here's how to make one using base R plotting functions:
+The most common way to visualize results is to plot each gene as a *volcano plot*. A volcano plot shows the expression of each gene, with the negative log10 (adjusted) p-value on the vertical axis and the `log2FoldChange` on the x-axis. Fill in the code to make a volcano plot using the `plot()` function!
 
 ```{r, eval=F}
-plot(x= results$log2FoldChange, y= -log10(results$padj))
-#abline() plots straight lines on an R plot.
-#v argument is for a vertical line, h argument is for a horizontal line, col argument is color
-abline(v=c(log2FC_threshold, -log2FC_threshold), h= c(-log10(padj_threshold)), col="green")
+fc_threshold = 2  # set a threshold of at least a 2 fold increase (double)
+p_threshold = 0.05  # set a threshold of adjusted p-value being <= 0.05
+
+# put your plot code here!
+
+# these lines put the lines on the plot
+# abline() plots straight lines on an R plot.
+# v argument is for a vertical line, h argument is for a horizontal line, col argument is color
+abline(v=c(-log2(fc_threshold), log2(fc_threshold)), h= c(-log10(p_threshold)), col="green")
 ```
 
 And here is a way to do it in `ggplot`:
 ```{r, eval=F}
-fc_threshold = 1  # set a threshold of at least a 2 fold increase (double)
-p_threshold = 0.05  # set a threshold of adjusted p-value being <= 0.05
 
 volcano_plot = ggplot(data = data.frame(results), aes(x = log2FoldChange, y = -log10(padj))) + 
   geom_point() + 
   theme_minimal() + # make things pretty
   # next 2 lines draw lines at the thresholds
-  geom_vline(xintercept=c(-fc_threshold, fc_threshold), color="red") + 
-  geom_hline(yintercept=-log10(p_threshold), color="red")
+  geom_vline(xintercept=c(-log2(fc_threshold), log2(fc_threshold)), color="green") + 
+  geom_hline(yintercept=-log10(p_threshold), color="green")
 
 volcano_plot
 ```

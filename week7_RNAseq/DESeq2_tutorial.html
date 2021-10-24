@@ -255,21 +255,23 @@ head(results)</code></pre>
 <p>It’s probably more interesting to look at the genes with the lowest adjusted p-values:</p>
 <pre class="r"><code>head(results[order(results$padj, decreasing = F), ], 10)  # be sure to understand what this is doing!</code></pre>
 <p>Note that a positive <code>log2FoldChange</code> means the gene is more highly expressed in young patients, and a negative <code>log2FoldChange</code> indicates the opposite (see the <span class="math inline">\(\log_2\)</span> line of the equation to convince yourself).</p>
-<p>The most common way to visualize results is to plot each gene as a <em>volcano plot</em>. A volcano plot shows the expression of each gene, with the negative log10 (adjusted) p-value on the vertical axis and the log2FoldChange on the x-axis. Here’s how to make one using base R plotting functions:</p>
-<pre class="r"><code>plot(x= results$log2FoldChange, y= -log10(results$padj))
-#abline() plots straight lines on an R plot.
-#v argument is for a vertical line, h argument is for a horizontal line, col argument is color
-abline(v=c(log2FC_threshold, -log2FC_threshold), h= c(-log10(padj_threshold)), col=&quot;green&quot;)</code></pre>
-<p>And here is a way to do it in <code>ggplot</code>:</p>
-<pre class="r"><code>fc_threshold = 1  # set a threshold of at least a 2 fold increase (double)
+<p>The most common way to visualize results is to plot each gene as a <em>volcano plot</em>. A volcano plot shows the expression of each gene, with the negative log10 (adjusted) p-value on the vertical axis and the <code>log2FoldChange</code> on the x-axis. Fill in the code to make a volcano plot using the <code>plot()</code> function!</p>
+<pre class="r"><code>fc_threshold = 2  # set a threshold of at least a 2 fold increase (double)
 p_threshold = 0.05  # set a threshold of adjusted p-value being &lt;= 0.05
 
-volcano_plot = ggplot(data = data.frame(results), aes(x = log2FoldChange, y = -log10(padj))) + 
+# put your plot code here!
+
+# these lines put the lines on the plot
+# abline() plots straight lines on an R plot.
+# v argument is for a vertical line, h argument is for a horizontal line, col argument is color
+abline(v=c(-log2(fc_threshold), log2(fc_threshold)), h= c(-log10(p_threshold)), col=&quot;green&quot;)</code></pre>
+<p>And here is a way to do it in <code>ggplot</code>:</p>
+<pre class="r"><code>volcano_plot = ggplot(data = data.frame(results), aes(x = log2FoldChange, y = -log10(padj))) + 
   geom_point() + 
   theme_minimal() + # make things pretty
   # next 2 lines draw lines at the thresholds
-  geom_vline(xintercept=c(-fc_threshold, fc_threshold), color=&quot;red&quot;) + 
-  geom_hline(yintercept=-log10(p_threshold), color=&quot;red&quot;)
+  geom_vline(xintercept=c(-log2(fc_threshold), log2(fc_threshold)), color=&quot;green&quot;) + 
+  geom_hline(yintercept=-log10(p_threshold), color=&quot;green&quot;)
 
 volcano_plot</code></pre>
 <p>You can play around with <code>ggplot</code> and the <code>results</code> objects to get more informative plots (there’s great tutorials online), but this should be good enough to get started. (Feel free to ask if you want to get fancier plots!)</p>

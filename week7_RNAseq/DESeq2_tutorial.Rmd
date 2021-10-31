@@ -167,7 +167,7 @@ Likewise, you can look at the genes that pass your thresholds. You can do this t
 
 There's a lot more comparisons you can make by performing differential expression, but the process will look very similar to this. There's also a lot more downstream analysis you can do with the fold change data (such as gene ontology, pathway enrichment, etc), but we're not going to discuss that as a group. 
 
-To finish off the tutorial, let's save the `results` data using `write_csv()`!
+To finish off the tutorial, let's save the `results` data using `write.csv()`!
 
 ```{r}
 # write CSV 

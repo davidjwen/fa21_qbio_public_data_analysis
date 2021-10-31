@@ -276,9 +276,10 @@ abline(v=c(-log2(fc_threshold), log2(fc_threshold)), h= c(-log10(p_threshold)), 
 volcano_plot</code></pre>
 <p>You can play around with <code>ggplot</code> and the <code>results</code> objects to get more informative plots (there’s great tutorials online), but this should be good enough to get started. (Feel free to ask if you want to get fancier plots!)</p>
 <p>Likewise, you can look at the genes that pass your thresholds. You can do this through the classic boolean masking techniques! (Look at a subset of your table based on the <code>fc_threshold</code> and <code>p_threshold</code>).</p>
-<pre class="r"><code># look at the genes that pass your thresholds</code></pre>
+<pre class="r"><code># look at the genes that pass your thresholds
+# feel free to do it in two steps!</code></pre>
 <p>There’s a lot more comparisons you can make by performing differential expression, but the process will look very similar to this. There’s also a lot more downstream analysis you can do with the fold change data (such as gene ontology, pathway enrichment, etc), but we’re not going to discuss that as a group.</p>
-<p>To finish off the tutorial, let’s save the <code>results</code> data using <code>write_csv()</code>!</p>
+<p>To finish off the tutorial, let’s save the <code>results</code> data using <code>write.csv()</code>!</p>
 <pre class="r"><code># write CSV </code></pre>
 </div>
 
